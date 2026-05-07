@@ -38,3 +38,5 @@ O sistema comunica o status ao usuário de três formas principais:
 Dica de customização: Para alterar a sequência de números, basta editar o array numeros dentro da tag <script> no arquivo HTML.
 ativo!
 
+Link (https://pausesamu.netlify.app/)[https://pausesamu.netlify.app/]
+
