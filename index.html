@@ -1,1 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PAUSE - Controle Total</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
 
+        /* Painel de Controle Flutuante */
+        .config-painel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 12px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        .config-painel:hover { opacity: 1; }
+
+        .linha-controle {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border-radius: 4px;
+            border: none;
+            text-align: center;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: #38bdf8;
+            border: none;
+            border-radius: 4px;
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-navegacao { background: #f8fafc; color: #0f172a; width: 100%; }
+
+        /* Estética do Display */
+        .numero-container { text-align: center; width: 100%; }
+
+        .numero {
+            font-size: 45vw;
+            font-weight: 800;
+            line-height: 0.8;
+            color: #38bdf8;
+            transition: opacity 0.3s;
+        }
+
+        .legenda {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #94a3b8;
+            margin-top: 20px;
+        }
+
+        .progresso {
+            position: absolute;
+            top: 0; left: 0; height: 8px;
+            background: #38bdf8; width: 0%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="progresso" id="barra"></div>
+
+<!-- Menu de Ajuste -->
+<div class="config-painel">
+    <div class="linha-controle">
+        <label>Minutos:</label>
+        <input type="number" id="inputMinutos" value="15" min="1">
+        <button onclick="atualizarTempoConfig()">OK</button>
+    </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px;">
+        <p style="font-size: 0.8rem; margin-bottom: 5px;">Mudar Número:</p>
+        <div class="linha-controle">
+            <button class="btn-navegacao" onclick="mudarNumeroManual(-1)">⬅ Anterior</button>
+            <button class="btn-navegacao" onclick="mudarNumeroManual(1)">Próximo ➡</button>
+        </div>
+    </div>
+</div>
+
+<div class="numero-container">
+    <h1 class="numero" id="contador">1</h1>
+    <div class="legenda" id="textoLegenda">PAUSA</div>
+</div>
+
+<script>
+    const numeros = [1, 2, 3, 4, 5, 6];
+    let indiceAtual = 0;
+    let tempoEspera = 900000; 
+    let progressoAtual = 0;
+    let timerInterval;
+
+    const elementoContador = document.getElementById("contador");
+    const barra = document.getElementById("barra");
+    const textoLegenda = document.getElementById("textoLegenda");
+    const inputMinutos = document.getElementById("inputMinutos");
+
+    function falar(texto) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(texto);
+        msg.lang = 'pt-BR';
+        msg.rate = 0.9;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function atualizarDisplay() {
+        const novoNumero = numeros[indiceAtual];
+        elementoContador.style.opacity = 0;
+        
+        setTimeout(() => {
+            elementoContador.textContent = novoNumero;
+            elementoContador.style.opacity = 1;
+            progressoAtual = 0;
+            falar(novoNumero);
+        }, 300);
+    }
+
+    // Função para o loop automático
+    function loopAutomatico() {
+        indiceAtual = (indiceAtual + 1) % numeros.length;
+        atualizarDisplay();
+    }
+
+    // Função para os botões manuais
+    function mudarNumeroManual(direcao) {
+        indiceAtual = (indiceAtual + direcao);
+        
+        // Garante que o índice não saia dos limites da lista
+        if (indiceAtual >= numeros.length) indiceAtual = 0;
+        if (indiceAtual < 0) indiceAtual = numeros.length - 1;
+
+        atualizarDisplay();
+        
+        // Reinicia o tempo para o novo número ter o tempo cheio
+        resetarTimer();
+    }
+
+    function atualizarTempoConfig() {
+        const novosMinutos = parseInt(inputMinutos.value);
+        if (novosMinutos > 0) {
+            tempoEspera = novosMinutos * 60 * 1000;
+            textoLegenda.textContent = `PAUSA`;
+            resetarTimer();
+            falar(`Tempo alterado para ${novosMinutos} minutos`);
+        }
+    }
+
+    function resetarTimer() {
+        progressoAtual = 0;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(loopAutomatico, tempoEspera);
+    }
+
+    // Início
+    timerInterval = setInterval(loopAutomatico, tempoEspera);
+
+    // Barra de progresso
+    setInterval(() => {
+        progressoAtual += (100 / (tempoEspera / 1000));
+        if (progressoAtual > 100) progressoAtual = 0;
+        barra.style.width = progressoAtual + "%";
+    }, 1000);
+
+    // Clique inicial para liberar áudio
+    window.addEventListener('click', () => falar("Sistema iniciado"), { once: true });
+</script>   
+
+</body>
+</html>
